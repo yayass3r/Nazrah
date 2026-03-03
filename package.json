@@ -1,5 +1,5 @@
 {
-  "name": "nazrah-pro",
+  "name": "nazrah-app",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -11,8 +11,22 @@
   "dependencies": {
     "expo": "~55.0.4",
     "expo-status-bar": "~55.0.4",
+    "expo-linear-gradient": "~14.0.0",
+    "expo-haptics": "~14.0.0",
+    "expo-location": "~18.0.0",
+    "@expo/vector-icons": "^14.0.0",
+    "@react-native-async-storage/async-storage": "2.1.0",
     "react": "19.2.0",
-    "react-native": "0.83.2"
+    "react-native": "0.83.2",
+    "react-native-gesture-handler": "~2.24.0",
+    "react-native-safe-area-context": "5.2.0",
+    "react-native-maps": "1.20.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "react-native-url-polyfill": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~5.9.2"
   },
   "private": true
 }

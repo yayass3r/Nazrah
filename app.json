@@ -1,29 +1,61 @@
 {
   "expo": {
-    "name": "nazrah-pro",
-    "slug": "nazrah-pro",
+    "name": "نظرة",
+    "slug": "nazrah-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1E88E5"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nazrah.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "نحتاج موقعك لعرض مقدمي الخدمة القريبين",
+        "NSCameraUsageDescription": "نحتاج الكاميرا لتسجيل فيديوهات المعاينة",
+        "NSMicrophoneUsageDescription": "نحتاج الميكروفون لتسجيل الصوت"
+      }
     },
     "android": {
+      "package": "com.nazrah.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+        "backgroundColor": "#1E88E5"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "نحتاج موقعك لعرض مقدمي الخدمة القريبين"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f076c218-a55b-4daf-85a6-4e4e104e6cc0"
+      }
+    },
+    "owner": "yayass3r",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f076c218-a55b-4daf-85a6-4e4e104e6cc0"
     }
   }
 }

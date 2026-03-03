@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -16,9 +15,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.nazrah.app",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "نحتاج موقعك لعرض مقدمي الخدمة القريبين",
-        "NSCameraUsageDescription": "نحتاج الكاميرا لتسجيل فيديوهات المعاينة",
-        "NSMicrophoneUsageDescription": "نحتاج الميكروفون لتسجيل الصوت"
+        "NSLocationWhenInUseUsageDescription": "نحتاج موقعك لعرض مقدمي الخدمة القريبين"
       }
     },
     "android": {
@@ -29,33 +26,21 @@
       },
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "CAMERA",
-        "RECORD_AUDIO"
+        "ACCESS_FINE_LOCATION"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "نحتاج موقعك لعرض مقدمي الخدمة القريبين"
-        }
-      ]
+      "expo-location",
+      "expo-font"
     ],
     "extra": {
       "eas": {
         "projectId": "f076c218-a55b-4daf-85a6-4e4e104e6cc0"
       }
     },
-    "owner": "yayass3r",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/f076c218-a55b-4daf-85a6-4e4e104e6cc0"
-    }
+    "owner": "yayass3r"
   }
 }

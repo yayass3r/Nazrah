@@ -35,7 +35,18 @@ export default function AuthScreen() {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          Alert.alert('خطأ في تسجيل الدخول', error.message);
+          // Check if it's a network error
+          if (error.message?.includes('Network') || error.message?.includes('fetch')) {
+            Alert.alert(
+              'خطأ في الاتصال',
+              'لا يمكن الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت أو استخدام "تجربة التطبيق" للدخول بدون إنترنت.',
+              [
+                { text: 'حسناً' }
+              ]
+            );
+          } else {
+            Alert.alert('خطأ في تسجيل الدخول', error.message || 'حدث خطأ غير متوقع');
+          }
         } else {
           router.replace('/(tabs)');
         }
@@ -47,12 +58,21 @@ export default function AuthScreen() {
         }
         const { error } = await signUp(email, password, name);
         if (error) {
-          Alert.alert('خطأ في التسجيل', error.message);
+          if (error.message?.includes('Network') || error.message?.includes('fetch')) {
+            Alert.alert(
+              'خطأ في الاتصال',
+              'لا يمكن الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت.'
+            );
+          } else {
+            Alert.alert('خطأ في التسجيل', error.message || 'حدث خطأ غير متوقع');
+          }
         } else {
           Alert.alert('نجاح', 'تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول');
           setIsLogin(true);
         }
       }
+    } catch (error: any) {
+      Alert.alert('خطأ', error.message || 'حدث خطأ غير متوقع');
     } finally {
       setLoading(false);
     }
@@ -67,6 +87,8 @@ export default function AuthScreen() {
       } else {
         router.replace('/(tabs)');
       }
+    } catch (error: any) {
+      Alert.alert('خطأ', error.message || 'حدث خطأ');
     } finally {
       setLoading(false);
     }
@@ -133,13 +155,18 @@ export default function AuthScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={handleDemoLogin}
-              disabled={loading}
-            >
-              <Text style={styles.demoButtonText}>تجربة التطبيق</Text>
-            </TouchableOpacity>
+            {/* Demo Mode - Works Offline */}
+            <View style={styles.demoSection}>
+              <Text style={styles.demoHint}>أو جرب التطبيق بدون تسجيل</Text>
+              <TouchableOpacity
+                style={styles.demoButton}
+                onPress={handleDemoLogin}
+                disabled={loading}
+              >
+                <Text style={styles.demoButtonText}>تجربة التطبيق</Text>
+              </TouchableOpacity>
+              <Text style={styles.demoNote}>يعمل بدون إنترنت</Text>
+            </View>
 
             <TouchableOpacity
               style={styles.toggle}
@@ -215,6 +242,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  demoSection: {
+    alignItems: 'center',
+    marginTop: 24,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.2)',
+  },
+  demoHint: {
+    color: '#B8D4E8',
+    fontSize: 14,
+    marginBottom: 12,
+  },
   demoButton: {
     backgroundColor: 'transparent',
     borderWidth: 2,
@@ -222,12 +261,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginTop: 16,
+    paddingHorizontal: 40,
   },
   demoButtonText: {
     color: '#FFD700',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  demoNote: {
+    color: '#888',
+    fontSize: 12,
+    marginTop: 8,
   },
   toggle: {
     marginTop: 24,

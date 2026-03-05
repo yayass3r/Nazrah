@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const supabaseUrl = 'https://pzixmpqemigbnqmgslovx.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6aXhtcHFlbWlnYm5xbWdzbG92eCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM4NTY1NTEyLCJleHAiOjIwNTQxNDE1MTJ9.bKPHVFBq-HVQyvlH0KJL5rDfLh8nCMjSMQPX6XaJN0I';
+const supabaseUrl = 'https://pzixmpqemignqmgslovx.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6aXhtcHFlbWlnbnFtZ3Nsb3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTY0NzIsImV4cCI6MjA4Nzg3MjQ3Mn0.s1kEAXbAB48FI2X7swSdmh2k8cOgYnazNRG-_HmxH5c';
 
 // Custom fetch with timeout and better error handling
 const customFetch = async (url: string, options: RequestInit = {}) => {
@@ -74,7 +74,7 @@ export async function signInWithDemo() {
 
     if (error) {
       // If network error, use demo mode
-      if (error.message.includes('Network') || error.message.includes('fetch')) {
+      if (error.message.includes('Network') || error.message.includes('fetch') || error.message.includes('timeout')) {
         console.log('Network error, using demo mode');
         isOnline = false;
         return {

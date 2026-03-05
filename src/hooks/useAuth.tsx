@@ -1,21 +1,34 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase, signInWithDemo, safeSignIn, safeSignUp, safeSignOut, getNetworkStatus } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  balance: number;
+  rating: number;
+  total_orders: number;
+}
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
+  profile: UserProfile | null;
   loading: boolean;
   isOnline: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, name: string) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
   signInDemo: () => Promise<{ error: any }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Demo user for offline mode
 const DEMO_USER: User = {
   id: 'demo-user-id',
   app_metadata: {},
@@ -28,9 +41,23 @@ const DEMO_USER: User = {
   updated_at: new Date().toISOString(),
 } as User;
 
+const DEMO_PROFILE: UserProfile = {
+  id: 'demo-user-id',
+  name: 'مستخدم تجريبي',
+  email: 'demo@nazrah.sa',
+  phone: '+966500000000',
+  balance: 500,
+  rating: 4.8,
+  total_orders: 12,
+};
+
+const DEMO_SESSION_KEY = '@nazrah_demo_session';
+const USER_PROFILE_KEY = '@nazrah_user_profile';
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
 
@@ -40,30 +67,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const initAuth = async () => {
     try {
-      // Try to get session from Supabase
+      // Check for demo session first
+      const demoSession = await AsyncStorage.getItem(DEMO_SESSION_KEY);
+      if (demoSession === 'true') {
+        setUser(DEMO_USER);
+        setProfile(DEMO_PROFILE);
+        setIsOnline(false);
+        setLoading(false);
+        return;
+      }
+
+      // Try Supabase session
       const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (error) {
-        console.log('Session error:', error.message);
-        // Check for demo session in local storage
-        const demoSession = await getDemoSession();
-        if (demoSession) {
-          setUser(DEMO_USER);
-          setIsOnline(false);
-        }
-      } else if (session) {
+      if (!error && session) {
         setSession(session);
         setUser(session.user);
         setIsOnline(true);
+        await loadProfile(session.user.id);
       }
     } catch (error) {
       console.log('Init auth error:', error);
-      // Check for demo session
-      const demoSession = await getDemoSession();
-      if (demoSession) {
-        setUser(DEMO_USER);
-        setIsOnline(false);
-      }
     } finally {
       setLoading(false);
     }
@@ -76,50 +100,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession(session);
             setUser(session.user);
             setIsOnline(true);
+            await loadProfile(session.user.id);
+          } else if (event === 'SIGNED_OUT') {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
           }
           setLoading(false);
         }
       );
 
-      return () => {
-        subscription.unsubscribe();
-      };
+      return () => subscription.unsubscribe();
     } catch (error) {
       console.log('Auth state change error:', error);
     }
   };
 
-  // Store demo session locally
-  const saveDemoSession = async () => {
+  const loadProfile = async (userId: string) => {
     try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.setItem('demo_session', 'true');
-    } catch (e) {
-      console.log('Save demo session error:', e);
+      // Try to load from cache first
+      const cachedProfile = await AsyncStorage.getItem(`${USER_PROFILE_KEY}_${userId}`);
+      if (cachedProfile) {
+        setProfile(JSON.parse(cachedProfile));
+      }
+
+      // Fetch from server
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (!error && data) {
+        setProfile(data);
+        await AsyncStorage.setItem(`${USER_PROFILE_KEY}_${userId}`, JSON.stringify(data));
+      }
+    } catch (error) {
+      console.log('Load profile error:', error);
     }
   };
 
-  const getDemoSession = async () => {
-    try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      const demo = await AsyncStorage.getItem('demo_session');
-      return demo === 'true';
-    } catch (e) {
-      return false;
-    }
-  };
-
-  const clearDemoSession = async () => {
-    try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.removeItem('demo_session');
-    } catch (e) {
-      console.log('Clear demo session error:', e);
+  const refreshProfile = async () => {
+    if (user?.id) {
+      await loadProfile(user.id);
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      // Clear demo session
+      await AsyncStorage.removeItem(DEMO_SESSION_KEY);
+      
       const { data, error } = await safeSignIn(email, password);
       
       if (error) {
@@ -130,35 +161,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(data.session);
         setUser(data.session.user);
         setIsOnline(true);
-        await clearDemoSession();
+        await loadProfile(data.session.user.id);
       }
       
       return { error: null };
     } catch (error: any) {
-      return { error: { message: error.message || 'Network error' } };
+      return { error: { message: error.message || 'خطأ في الاتصال' } };
     }
   };
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
       const { data, error } = await safeSignUp(email, password, name);
-      
-      if (error) {
-        return { data: null, error };
-      }
-      
-      return { data, error: null };
+      return { data, error };
     } catch (error: any) {
-      return { data: null, error: { message: error.message || 'Network error' } };
+      return { 
+        data: null, 
+        error: { message: error.message || 'خطأ في الاتصال' } 
+      };
     }
   };
 
   const signOut = async () => {
     try {
       await safeSignOut();
-      await clearDemoSession();
+      await AsyncStorage.removeItem(DEMO_SESSION_KEY);
       setSession(null);
       setUser(null);
+      setProfile(null);
       setIsOnline(true);
     } catch (error) {
       console.log('Sign out error:', error);
@@ -175,13 +205,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (data?.user) {
         setUser(data.user as User);
-        await saveDemoSession();
+        setProfile(DEMO_PROFILE);
+        await AsyncStorage.setItem(DEMO_SESSION_KEY, 'true');
         setIsOnline(getNetworkStatus());
       }
       
       return { error: null };
     } catch (error: any) {
-      return { error: { message: error.message || 'Demo sign in failed' } };
+      return { error: { message: error.message || 'فشل الدخول التجريبي' } };
     }
   };
 
@@ -189,12 +220,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{
       session,
       user,
+      profile,
       loading,
       isOnline,
       signIn,
       signUp,
       signOut,
       signInDemo: handleSignInDemo,
+      refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>

@@ -2,35 +2,39 @@ import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
+// Supabase Configuration
 const supabaseUrl = 'https://pzixmpqemignqmgslovx.supabase.co';
 const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB6aXhtcHFlbWlnbnFtZ3Nsb3Z4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTY0NzIsImV4cCI6MjA4Nzg3MjQ3Mn0.s1kEAXbAB48FI2X7swSdmh2k8cOgYnazNRG-_HmxH5c';
 
-// Custom fetch with timeout and better error handling
-const customFetch = async (url: string, options: RequestInit = {}) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+// Custom fetch with timeout
+const createCustomFetch = () => {
+  return async (url: string, options: RequestInit = {}) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        ...options.headers,
-      },
-    });
-    clearTimeout(timeoutId);
-    return response;
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error('Request timeout - please check your internet connection');
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...options.headers,
+        },
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout - يرجى التحقق من الاتصال بالإنترنت');
+      }
+      throw new Error('Network request failed - فشل الاتصال بالخادم');
     }
-    throw new Error('Network request failed - please check your internet connection');
-  }
+  };
 };
 
+// Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: AsyncStorage,
@@ -39,9 +43,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: false,
   },
   global: {
-    fetch: customFetch as any,
+    fetch: createCustomFetch() as any,
     headers: {
-      'X-Client-Info': `nazrah-app/${Platform.OS}`,
+      'X-Client-Info': `nazrah/${Platform.OS}/${Platform.Version}`,
     },
   },
   db: {
@@ -54,38 +58,47 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-// Demo user credentials
+// Demo credentials
 export const DEMO_USER = {
   email: 'demo@nazrah.sa',
   password: 'demo123456'
 };
 
-// Check if we're online
+// Network status
 let isOnline = true;
 
-// Demo mode fallback - works without network
+// Demo user object
+const createDemoUser = () => ({
+  id: 'demo-user-' + Date.now(),
+  email: DEMO_USER.email,
+  user_metadata: { 
+    name: 'مستخدم تجريبي',
+    avatar: null,
+    phone: '+966500000000',
+    created_at: new Date().toISOString()
+  },
+  aud: 'authenticated',
+  role: 'authenticated',
+  email_confirmed_at: new Date().toISOString(),
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
+// Sign in with demo account
 export async function signInWithDemo() {
-  // First try to connect to Supabase
   try {
+    // Try real auth first
     const { data, error } = await supabase.auth.signInWithPassword({
       email: DEMO_USER.email,
       password: DEMO_USER.password,
     });
 
     if (error) {
-      // If network error, use demo mode
-      if (error.message.includes('Network') || error.message.includes('fetch') || error.message.includes('timeout')) {
-        console.log('Network error, using demo mode');
+      const errorMsg = error.message?.toLowerCase() || '';
+      if (errorMsg.includes('network') || errorMsg.includes('fetch') || errorMsg.includes('timeout')) {
         isOnline = false;
         return {
-          data: {
-            user: {
-              id: 'demo-user-id',
-              email: DEMO_USER.email,
-              user_metadata: { name: 'مستخدم تجريبي' },
-            },
-            session: null,
-          },
+          data: { user: createDemoUser(), session: null },
           error: null,
         };
       }
@@ -95,57 +108,60 @@ export async function signInWithDemo() {
     isOnline = true;
     return { data, error };
   } catch (error: any) {
-    console.log('Sign in error:', error.message);
-    // Fallback to demo mode on any error
     isOnline = false;
     return {
-      data: {
-        user: {
-          id: 'demo-user-id',
-          email: DEMO_USER.email,
-          user_metadata: { name: 'مستخدم تجريبي' },
-        },
-        session: null,
-      },
+      data: { user: createDemoUser(), session: null },
       error: null,
     };
   }
 }
 
-// Safe auth operations with fallback
+// Safe sign in
 export async function safeSignIn(email: string, password: string) {
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    if (!error && data.session) {
+      isOnline = true;
+    }
+    
     return { data, error };
   } catch (error: any) {
     return {
       data: null,
-      error: { message: 'Network error - please check your internet connection' }
+      error: { message: 'فشل الاتصال - يرجى التحقق من الإنترنت' }
     };
   }
 }
 
+// Safe sign up
 export async function safeSignUp(email: string, password: string, name: string) {
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { name }
+        data: { 
+          name,
+          avatar: null,
+          created_at: new Date().toISOString()
+        }
       }
     });
+    
     return { data, error };
   } catch (error: any) {
     return {
       data: null,
-      error: { message: 'Network error - please check your internet connection' }
+      error: { message: 'فشل الاتصال - يرجى التحقق من الإنترنت' }
     };
   }
 }
 
+// Safe sign out
 export async function safeSignOut() {
   try {
     await supabase.auth.signOut();
@@ -154,7 +170,46 @@ export async function safeSignOut() {
   }
 }
 
-// Check network status
+// Get network status
 export function getNetworkStatus() {
   return isOnline;
+}
+
+// Check if user exists
+export async function checkUserExists(email: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('check_email_exists', { 
+      email_input: email 
+    });
+    return !error && data;
+  } catch {
+    return false;
+  }
+}
+
+// Get user profile
+export async function getUserProfile(userId: string) {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    return { data, error };
+  } catch (error: any) {
+    return { data: null, error };
+  }
+}
+
+// Update user profile
+export async function updateUserProfile(userId: string, updates: any) {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('id', userId);
+    return { data, error };
+  } catch (error: any) {
+    return { data: null, error };
+  }
 }

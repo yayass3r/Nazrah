@@ -1,20 +1,16 @@
 import { Tabs } from 'expo-router';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 
 function TabBarIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons: Record<string, string> = {
-    index: '*',
-    map: '#',
-    camera: '+',
-    wallet: '$',
-    profile: '@',
+    index: '🏠',
+    map: '🗺️',
+    camera: '📹',
+    wallet: '💳',
+    profile: '👤',
   };
-
-  return (
-    <Text style={{ fontSize: 24 }}>
-      {icons[name] || '*'}
-    </Text>
-  );
+  return <Text style={{ fontSize: 24 }}>{icons[name] || '•'}</Text>;
 }
 
 export default function TabsLayout() {
@@ -25,10 +21,17 @@ export default function TabsLayout() {
         headerStyle: { backgroundColor: '#1E3A5F' },
         headerTintColor: '#fff',
         headerTitleStyle: { fontWeight: 'bold' },
+        headerTitleAlign: 'center',
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: '#4CAF50',
         tabBarInactiveTintColor: '#888',
         tabBarLabelStyle: styles.tabBarLabel,
+        tabBarShowLabel: true,
+        ...Platform.select({
+          android: {
+            tabBarLabelPosition: 'below-icon',
+          },
+        }),
       }}
     >
       <Tabs.Screen
@@ -62,7 +65,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'الملف الشخصي',
+          title: 'الملف',
           tabBarIcon: ({ focused }) => <TabBarIcon name="profile" focused={focused} />,
         }}
       />
@@ -79,7 +82,7 @@ const styles = StyleSheet.create({
     height: 60,
   },
   tabBarLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
   },
 });

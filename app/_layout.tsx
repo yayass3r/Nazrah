@@ -1,5 +1,4 @@
 import { Stack } from 'expo-router';
-import { AuthProvider } from '../src/hooks/useAuth';
 import { StatusBar } from 'expo-status-bar';
 import { I18nManager } from 'react-native';
 
@@ -9,7 +8,7 @@ I18nManager.forceRTL(true);
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
+    <>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -22,6 +21,6 @@ export default function RootLayout() {
         <Stack.Screen name="auth" />
         <Stack.Screen name="(tabs)" />
       </Stack>
-    </AuthProvider>
+    </>
   );
 }

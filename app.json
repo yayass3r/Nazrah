@@ -16,14 +16,19 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nazrah.app",
+      "buildNumber": "1.0.0",
       "infoPlist": {
         "NSCameraUsageDescription": "نحتاج الكاميرا لتسجيل الفيديو",
+        "NSMicrophoneUsageDescription": "نحتاج الميكروفون لتسجيل الصوت",
         "NSLocationWhenInUseUsageDescription": "نحتاج موقعك لعرض مقدمي الخدمة القريبين",
-        "NSLocationAlwaysUsageDescription": "نحتاج موقعك لعرض مقدمي الخدمة القريبين"
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "نحتاج موقعك لعرض مقدمي الخدمة القريبين",
+        "CFBundleDisplayName": "نظرة",
+        "CFBundleLanguage": "ar"
       }
     },
     "android": {
       "package": "com.nazrah.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#1E3A5F",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,7 +40,8 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.INTERNET"
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE"
       ]
     },
     "web": {
@@ -71,6 +77,12 @@
         "projectId": "4f2ee3dd-85ab-42fa-9bd7-34162fe33a4c"
       }
     },
-    "owner": "yass3r4099"
+    "owner": "yass3r4099",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/4f2ee3dd-85ab-42fa-9bd7-34162fe33a4c"
+    }
   }
 }

@@ -1,0 +1,81 @@
+{
+  "expo": {
+    "name": "نظرة",
+    "slug": "nazrah-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "nazrah",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E3A5F"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nazrah.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "نحتاج الكاميرا لتسجيل الفيديو",
+        "NSLocationWhenInUseUsageDescription": "نحتاج موقعك لعرض مقدمي الخدمة القريبين",
+        "NSLocationAlwaysUsageDescription": "نحتاج موقعك لعرض مقدمي الخدمة القريبين"
+      },
+      "config": {
+        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+      }
+    },
+    "android": {
+      "package": "com.nazrah.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#1E3A5F",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-router",
+      "expo-image",
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "نحتاج الكاميرا لتسجيل الفيديو",
+          "microphonePermission": "نحتاج الميكروفون لتسجيل الصوت",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "نحتاج موقعك لعرض مقدمي الخدمة القريبين",
+          "locationWhenInUsePermission": "نحتاج موقعك لعرض مقدمي الخدمة القريبين",
+          "isIosBackground": false,
+          "isAndroidBackground": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "f076c218-a55b-4daf-85a6-4e4e104e6cc0"
+      }
+    }
+  }
+}

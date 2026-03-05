@@ -64,6 +64,13 @@
           "isAndroidBackground": false
         }
       ]
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4f2ee3dd-85ab-42fa-9bd7-34162fe33a4c"
+      }
+    },
+    "owner": "yass3r4099"
   }
 }

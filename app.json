@@ -64,11 +64,6 @@
           "isAndroidBackground": false
         }
       ]
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "f076c218-a55b-4daf-85a6-4e4e104e6cc0"
-      }
-    }
+    ]
   }
 }

@@ -34,14 +34,33 @@ export default function AuthScreen() {
     try {
       if (isLogin) {
         const { error } = await signIn(email, password);
+
         if (error) {
-          // Check if it's a network error
-          if (error.message?.includes('Network') || error.message?.includes('fetch')) {
+          // Check specific error types
+          const errorMsg = error.message?.toLowerCase() || '';
+
+          if (errorMsg.includes('email not confirmed') || errorMsg.includes('confirm')) {
+            Alert.alert(
+              'تأكيد البريد الإلكتروني',
+              'تم إرسال رابط تأكيد إلى بريدك الإلكتروني. يرجى تأكيد بريدك قبل تسجيل الدخول.\n\nتحقق من صندوق الوارد أو البريد المهمل.',
+              [
+                { text: 'حسناً' },
+                { text: 'تجربة التطبيق', onPress: handleDemoLogin }
+              ]
+            );
+          } else if (errorMsg.includes('invalid login credentials') || errorMsg.includes('invalid')) {
+            Alert.alert(
+              'خطأ في تسجيل الدخول',
+              'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+              [{ text: 'حسناً' }]
+            );
+          } else if (errorMsg.includes('network') || errorMsg.includes('fetch') || errorMsg.includes('timeout')) {
             Alert.alert(
               'خطأ في الاتصال',
-              'لا يمكن الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت أو استخدام "تجربة التطبيق" للدخول بدون إنترنت.',
+              'لا يمكن الاتصال بالخادم.\n\nالحلول:\n1. تحقق من اتصال الإنترنت\n2. استخدم "تجربة التطبيق" للدخول بدون إنترنت',
               [
-                { text: 'حسناً' }
+                { text: 'حسناً' },
+                { text: 'تجربة التطبيق', onPress: handleDemoLogin }
               ]
             );
           } else {
@@ -51,24 +70,52 @@ export default function AuthScreen() {
           router.replace('/(tabs)');
         }
       } else {
+        // Registration
         if (!name) {
           Alert.alert('خطأ', 'يرجى إدخال الاسم');
           setLoading(false);
           return;
         }
-        const { error } = await signUp(email, password, name);
+
+        const { data, error } = await signUp(email, password, name);
+
         if (error) {
-          if (error.message?.includes('Network') || error.message?.includes('fetch')) {
+          const errorMsg = error.message?.toLowerCase() || '';
+
+          if (errorMsg.includes('already registered') || errorMsg.includes('already exists')) {
+            Alert.alert(
+              'الحساب موجود',
+              'هذا البريد الإلكتروني مسجل مسبقاً. حاول تسجيل الدخول.',
+              [{ text: 'تسجيل الدخول', onPress: () => setIsLogin(true) }]
+            );
+          } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
             Alert.alert(
               'خطأ في الاتصال',
-              'لا يمكن الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت.'
+              'لا يمكن الاتصال بالخادم. تحقق من اتصال الإنترنت.'
             );
           } else {
             Alert.alert('خطأ في التسجيل', error.message || 'حدث خطأ غير متوقع');
           }
         } else {
-          Alert.alert('نجاح', 'تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول');
-          setIsLogin(true);
+          // Registration successful
+          // Check if email confirmation is required
+          if (data?.user && !data.session) {
+            Alert.alert(
+              'تم إنشاء الحساب! 🎉',
+              'تم إرسال رابط تأكيد إلى بريدك الإلكتروني.\n\nيرجى:\n1. فتح بريدك الإلكتروني\n2. الضغط على رابط التأكيد\n3. ثم تسجيل الدخول\n\nأو استخدم "تجربة التطبيق" الآن',
+              [
+                { text: 'حسناً، فهمت', onPress: () => setIsLogin(true) },
+                { text: 'تجربة التطبيق', onPress: handleDemoLogin }
+              ]
+            );
+          } else if (data?.session) {
+            // Auto login if no email confirmation required
+            Alert.alert('نجاح! 🎉', 'تم إنشاء الحساب وتسجيل الدخول بنجاح');
+            router.replace('/(tabs)');
+          } else {
+            Alert.alert('نجاح', 'تم إنشاء الحساب! يمكنك الآن تسجيل الدخول');
+            setIsLogin(true);
+          }
         }
       }
     } catch (error: any) {

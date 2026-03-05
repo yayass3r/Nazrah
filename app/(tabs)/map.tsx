@@ -8,19 +8,29 @@ import {
   ActivityIndicator,
   Dimensions,
   Platform,
+  ScrollView,
+  Linking,
 } from 'react-native';
-import MapView, { Marker, UrlTile, PROVIDER_DEFAULT } from 'react-native-maps';
+import MapView, { Marker, UrlTile, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { LinearGradient } from 'expo-linear-gradient';
 
 const { width, height } = Dimensions.get('window');
 
-// OpenStreetMap tile URL (FREE - no API key needed)
-const OSM_TILE_URL = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+// Free tile servers (try multiple for reliability)
+const TILE_URLS = [
+  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+];
 
-// Alternative free tile servers:
-// CartoDB: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
-// MapBox Style (free tier): 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png'
+// Riyadh coordinates (default)
+const RIYADH_REGION = {
+  latitude: 24.7136,
+  longitude: 46.6753,
+  latitudeDelta: 0.05,
+  longitudeDelta: 0.05,
+};
 
 const providers = [
   {
@@ -32,6 +42,7 @@ const providers = [
     price: 100,
     rating: 4.8,
     distance: '1.2 كم',
+    phone: '+966501234567',
   },
   {
     id: 2,
@@ -42,6 +53,7 @@ const providers = [
     price: 500,
     rating: 4.9,
     distance: '2.5 كم',
+    phone: '+966502345678',
   },
   {
     id: 3,
@@ -52,6 +64,7 @@ const providers = [
     price: 200,
     rating: 4.7,
     distance: '0.8 كم',
+    phone: '+966503456789',
   },
   {
     id: 4,
@@ -62,6 +75,7 @@ const providers = [
     price: 150,
     rating: 4.6,
     distance: '1.5 كم',
+    phone: '+966504567890',
   },
   {
     id: 5,
@@ -72,22 +86,9 @@ const providers = [
     price: 300,
     rating: 4.9,
     distance: '2.0 كم',
+    phone: '+966505678901',
   },
 ];
-
-// Custom Marker Component
-function CustomMarker({ provider, onPress }: { provider: any; onPress: () => void }) {
-  return (
-    <TouchableOpacity style={styles.customMarker} onPress={onPress}>
-      <View style={styles.markerCircle}>
-        <Text style={styles.markerIcon}>[M]</Text>
-      </View>
-      <View style={styles.markerLabel}>
-        <Text style={styles.markerText} numberOfLines={1}>{provider.name.split(' ')[0]}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
 
 export default function MapScreen() {
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
@@ -95,29 +96,43 @@ export default function MapScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedProvider, setSelectedProvider] = useState<any>(null);
   const [showProviders, setShowProviders] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
+  const [region, setRegion] = useState<Region>(RIYADH_REGION);
   const mapRef = useRef<MapView>(null);
 
   useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setErrorMsg('تم رفض إذن الوصول للموقع');
-          setLoading(false);
-          return;
-        }
-
-        let location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        setLocation(location);
-      } catch (error) {
-        setErrorMsg('فشل في تحديد الموقع');
-      } finally {
-        setLoading(false);
-      }
-    })();
+    requestLocation();
   }, []);
+
+  const requestLocation = async () => {
+    setLoading(true);
+    try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('تم رفض إذن الوصول للموقع - سيتم استخدام موقع الرياض');
+        setRegion(RIYADH_REGION);
+        setLoading(false);
+        return;
+      }
+
+      let location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      setLocation(location);
+      setRegion({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
+    } catch (error) {
+      console.log('Location error:', error);
+      setErrorMsg('فشل في تحديد الموقع - سيتم استخدام موقع الرياض');
+      setRegion(RIYADH_REGION);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const goToMyLocation = async () => {
     if (location && mapRef.current) {
@@ -127,26 +142,41 @@ export default function MapScreen() {
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
       }, 1000);
+    } else {
+      Alert.alert('تنبيه', 'لم يتم تحديد موقعك بعد');
     }
   };
 
   const focusOnProvider = (provider: any) => {
+    const newRegion = {
+      latitude: provider.latitude,
+      longitude: provider.longitude,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
+    };
+    
+    setRegion(newRegion);
+    
     if (mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: provider.latitude,
-        longitude: provider.longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      }, 500);
+      mapRef.current.animateToRegion(newRegion, 500);
     }
     setSelectedProvider(provider);
   };
 
-  const initialRegion = {
-    latitude: location?.coords.latitude || 24.7136, // الرياض
-    longitude: location?.coords.longitude || 46.6753,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
+  const handleCall = (phone: string) => {
+    Linking.openURL(`tel:${phone}`).catch(() => {
+      Alert.alert('خطأ', 'لا يمكن إجراء المكالمة');
+    });
+  };
+
+  const handleMessage = (phone: string) => {
+    Linking.openURL(`sms:${phone}`).catch(() => {
+      Alert.alert('خطأ', 'لا يمكن إرسال الرسالة');
+    });
+  };
+
+  const onMapReady = () => {
+    setMapReady(true);
   };
 
   if (loading) {
@@ -154,31 +184,41 @@ export default function MapScreen() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4CAF50" />
         <Text style={styles.loadingText}>جاري تحديد الموقع...</Text>
-        <Text style={styles.loadingSubtext}>يستخدم OpenStreetMap المجاني</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {/* Map */}
       <MapView
         ref={mapRef}
         style={styles.map}
-        initialRegion={initialRegion}
+        region={region}
+        onRegionChangeComplete={setRegion}
         showsUserLocation={true}
         showsMyLocationButton={false}
         showsCompass={true}
         showsScale={true}
         provider={PROVIDER_DEFAULT}
-        mapType={Platform.OS === 'android' ? 'none' : 'standard'}
+        onMapReady={onMapReady}
+        minZoomLevel={5}
+        maxZoomLevel={20}
+        loadingEnabled={true}
+        loadingBackgroundColor="#1E3A5F"
+        loadingIndicatorColor="#4CAF50"
       >
-        {/* OpenStreetMap Tile Layer - FREE */}
-        <UrlTile
-          urlTemplate={OSM_TILE_URL}
-          maximumZ={19}
-          flipY={false}
-          tileSize={256}
-        />
+        {/* OpenStreetMap Tiles - FREE */}
+        {Platform.OS === 'android' && mapReady && (
+          <UrlTile
+            urlTemplate={TILE_URLS[0]}
+            maximumZ={19}
+            minimumZ={5}
+            flipY={false}
+            tileSize={256}
+            shouldReplaceMapContent={true}
+          />
+        )}
         
         {/* Provider Markers */}
         {providers.map((provider) => (
@@ -189,10 +229,11 @@ export default function MapScreen() {
               longitude: provider.longitude,
             }}
             onPress={() => setSelectedProvider(provider)}
+            tracksViewChanges={false}
           >
             <View style={styles.markerContainer}>
               <View style={styles.markerPin}>
-                <Text style={styles.markerPrice}>{provider.price}</Text>
+                <Text style={styles.markerPrice}>{provider.price} ر.س</Text>
               </View>
               <View style={styles.markerDot} />
             </View>
@@ -216,10 +257,10 @@ export default function MapScreen() {
         </TouchableOpacity>
       </LinearGradient>
 
-      {/* Map Type Badge */}
+      {/* Map Info Badge */}
       <View style={styles.mapBadge}>
         <Text style={styles.mapBadgeText}>OpenStreetMap</Text>
-        <Text style={styles.mapBadgeSub}>مجاني 100%</Text>
+        <Text style={styles.mapBadgeSub}>مجاني</Text>
       </View>
 
       {/* Providers List Toggle */}
@@ -228,7 +269,7 @@ export default function MapScreen() {
         onPress={() => setShowProviders(!showProviders)}
       >
         <Text style={styles.listToggleText}>
-          {showProviders ? '[Hide]' : '[List]'}
+          {showProviders ? '[X]' : '[=]'}
         </Text>
       </TouchableOpacity>
 
@@ -278,7 +319,7 @@ export default function MapScreen() {
                 <Text style={styles.providerService}>{selectedProvider.service}</Text>
                 <View style={styles.providerStats}>
                   <Text style={styles.providerRating}>* {selectedProvider.rating}</Text>
-                  <Text style={styles.providerDistance}>{selectedProvider.distance}</Text>
+                  <Text style={styles.providerDistanceText}>{selectedProvider.distance}</Text>
                 </View>
               </View>
               <View style={styles.providerPriceContainer}>
@@ -288,10 +329,16 @@ export default function MapScreen() {
             </View>
             
             <View style={styles.providerCardActions}>
-              <TouchableOpacity style={styles.callButton}>
+              <TouchableOpacity 
+                style={styles.callButton}
+                onPress={() => handleCall(selectedProvider.phone)}
+              >
                 <Text style={styles.callButtonText}>[Call]</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.messageButton}>
+              <TouchableOpacity 
+                style={styles.messageButton}
+                onPress={() => handleMessage(selectedProvider.phone)}
+              >
                 <Text style={styles.messageButtonText}>[MSG]</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.bookButton}>
@@ -306,17 +353,14 @@ export default function MapScreen() {
       {errorMsg && (
         <View style={styles.errorBanner}>
           <Text style={styles.errorText}>{errorMsg}</Text>
-          <TouchableOpacity onPress={() => setLoading(true)}>
-            <Text style={styles.retryText}>إعادة المحاولة</Text>
+          <TouchableOpacity onPress={requestLocation}>
+            <Text style={styles.retryText}>إعادة</Text>
           </TouchableOpacity>
         </View>
       )}
     </View>
   );
 }
-
-// Import ScrollView for horizontal list
-import { ScrollView } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
@@ -336,11 +380,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: 16,
     fontSize: 18,
-  },
-  loadingSubtext: {
-    color: '#B8D4E8',
-    marginTop: 8,
-    fontSize: 14,
   },
   headerOverlay: {
     position: 'absolute',
@@ -428,7 +467,7 @@ const styles = StyleSheet.create({
   },
   listToggleText: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   providersList: {
@@ -477,7 +516,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   markerPin: {
-    backgroundColor: '#1E3A5F',
+    backgroundColor: '#4CAF50',
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 6,
@@ -491,7 +530,7 @@ const styles = StyleSheet.create({
   },
   markerPrice: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
   },
   markerDot: {
@@ -502,37 +541,8 @@ const styles = StyleSheet.create({
     borderTopWidth: 10,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: '#1E3A5F',
+    borderTopColor: '#4CAF50',
     marginTop: -2,
-  },
-  customMarker: {
-    alignItems: 'center',
-  },
-  markerCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-  },
-  markerIcon: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  markerLabel: {
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginTop: 4,
-  },
-  markerText: {
-    color: '#fff',
-    fontSize: 10,
   },
   providerCard: {
     position: 'absolute',
@@ -613,7 +623,7 @@ const styles = StyleSheet.create({
     color: '#FFD700',
     marginLeft: 12,
   },
-  providerDistance: {
+  providerDistanceText: {
     fontSize: 12,
     color: '#888',
   },
@@ -677,7 +687,7 @@ const styles = StyleSheet.create({
     top: 120,
     left: 16,
     right: 16,
-    backgroundColor: '#ff4444',
+    backgroundColor: '#ff9800',
     borderRadius: 12,
     padding: 12,
     flexDirection: 'row',
@@ -687,10 +697,12 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#fff',
     flex: 1,
+    fontSize: 12,
   },
   retryText: {
     color: '#fff',
     fontWeight: 'bold',
     marginLeft: 12,
+    fontSize: 12,
   },
 });

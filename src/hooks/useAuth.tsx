@@ -8,7 +8,7 @@ interface AuthContextType {
   loading: boolean;
   isOnline: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string) => Promise<{ data: any; error: any }>;
   signOut: () => Promise<void>;
   signInDemo: () => Promise<{ error: any }>;
 }
@@ -144,12 +144,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await safeSignUp(email, password, name);
       
       if (error) {
-        return { error };
+        return { data: null, error };
       }
       
-      return { error: null };
+      return { data, error: null };
     } catch (error: any) {
-      return { error: { message: error.message || 'Network error' } };
+      return { data: null, error: { message: error.message || 'Network error' } };
     }
   };
 
